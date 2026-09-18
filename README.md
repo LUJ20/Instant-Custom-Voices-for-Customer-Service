@@ -1,6 +1,6 @@
 # Instant Custom Voice Demo for Customer Service
 
-A production-ready Google Cloud reference architecture and interactive Streamlit application demonstrating zero-shot multi-speaker voice cloning using **Google Cloud Text-to-Speech Chirp 3 Instant Custom Voice** and **Vertex AI Gemini 2.5 Flash**.
+A production-ready Google Cloud reference architecture and interactive Streamlit application demonstrating zero-shot multi-speaker voice cloning using **Google Cloud Text-to-Speech Chirp 3 Instant Custom Voice** and **Vertex AI Gemini 3.8 Flash**.
 
 [![Official Documentation](https://img.shields.io/badge/Google_Cloud-Chirp_3_Docs-4285F4?logo=googlecloud&logoColor=white)](https://docs.cloud.google.com/text-to-speech/docs/chirp3-instant-custom-voice)
 [![Google Cloud Run](https://img.shields.io/badge/Deploy-Cloud_Run-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
@@ -19,7 +19,7 @@ This solution allows enterprise customer experience and contact center teams to 
    |                                  |                                       |
    v                                  v                                       v
 [1. Voice Profile Gallery]   [2. Scenario & Dialogue AI]          [3. GCS Project Management]
-   • Consent Audio Ingestion    • Gemini 2.5 Flash Generator         • Save / Load Manifests
+   • Consent Audio Ingestion    • Gemini 3.8 Flash Generator         • Save / Load Manifests
    • Voice Key Creation         • Multi-turn script editor           • Audio blob persistence
    • Live Audio Preview         • Culture-aware name mapping         • GCS REST JSON integration
    |                                  |                                       |
@@ -57,7 +57,7 @@ This solution allows enterprise customer experience and contact center teams to 
 - **Automated Voice Profile Management:** Edit voice names directly; the system automatically resolves authentic regional personas and gender roles.
 
 ### 2. Multi-Speaker Dynamic Dialogue Generation
-- **Gemini 2.5 Flash Integration:** Synthesizes realistic 5–7 turn customer support interactions from scenario prompts (e.g., banking alerts, airline rebooking, telecom outages).
+- **Gemini 3.8 Flash Integration:** Synthesizes realistic 5–7 turn customer support interactions from scenario prompts (e.g., banking alerts, airline rebooking, telecom outages).
 - **Interactive Turn Editor:** Add, remove, or modify speaker turns, dialogue text, and speaker roles before synthesis.
 - **Nationality & Persona Adaptation:** Automatically maps character names to match voice nationalities (e.g., Priya/Rahul for Indian personas, Ji-woo/Min-jun for Korean personas).
 
@@ -152,7 +152,7 @@ chmod +x deploy.sh
 ├── app.py                     # Streamlit frontend & interactive orchestration
 ├── voice_service.py           # Chirp 3 Instant Custom Voice synthesis & key creation
 ├── voice_gallery.py           # Gallery manager for custom audio reference samples
-├── script_generator.py        # Gemini 2.5 Flash dynamic dialogue generation
+├── script_generator.py        # Gemini 3.8 Flash dynamic dialogue generation
 ├── project_manager.py         # GCS & local project persistence (save/load/list/delete)
 ├── gcs_service.py             # Google Cloud Storage REST API service wrapper
 ├── scenarios.py               # Customer service scenarios & nationality name mapping
