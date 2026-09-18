@@ -8,6 +8,15 @@ A production-ready Google Cloud reference architecture and interactive Streamlit
 
 ---
 
+## 👤 Author & Maintainer
+
+**Layolin Jesudhass**  
+Customer Solutions Consultant / AI Specialist, Google Cloud  
+Email: `layolin@google.com`  
+GitHub: [@LUJ20](https://github.com/LUJ20)
+
+---
+
 ## Architecture & Solution Overview
 
 This solution allows enterprise customer experience and contact center teams to author, simulate, and generate multi-speaker customer service conversations powered by high-fidelity zero-shot voice cloning:
@@ -92,13 +101,13 @@ To comply with Google Cloud AI safety guidelines and biometric voice cloning req
 - System `ffmpeg` installed for audio stitching:
   - macOS: `brew install ffmpeg`
   - Debian/Ubuntu: `sudo apt-get install -y ffmpeg`
-- Google Cloud project allowlisted for Chirp 3 Instant Custom Voice.
+- Google Cloud project allowlisted for Chirp 3 Instant Custom Voice (e.g., `consumer-genai-experiments`).
 
-### 2. Authentication
+### 2. Authentication & Project Setup
 Authenticate your local environment with Application Default Credentials:
 ```bash
 gcloud auth application-default login --scopes="https://www.googleapis.com/auth/cloud-platform"
-gcloud config set project YOUR_PROJECT_ID
+gcloud config set project consumer-genai-experiments
 ```
 
 ### 3. Installation
@@ -132,16 +141,16 @@ Deploy the application directly to Google Cloud Run as a serverless container:
 chmod +x deploy.sh
 
 # Deploy to Cloud Run
-./deploy.sh YOUR_PROJECT_ID us-central1 YOUR_GCS_BUCKET_NAME YOUR_GCP_ACCOUNT
+./deploy.sh consumer-genai-experiments us-central1 consumer-genai-experiments-cust-service-voice layolin@google.com
 ```
 
-### Environment Variables
+### Environment Configuration
 
-| Variable | Description | Default |
+| Variable | Description | Default / Example |
 | :--- | :--- | :--- |
-| `GOOGLE_CLOUD_PROJECT` | GCP Project ID | `auto-detected` |
+| `GOOGLE_CLOUD_PROJECT` | GCP Project ID | `consumer-genai-experiments` |
 | `GOOGLE_CLOUD_LOCATION` | Cloud Run and API region | `us-central1` |
-| `GCS_BUCKET_NAME` | Cloud Storage bucket for project persistence | `${PROJECT_ID}-cust-service-voice` |
+| `GCS_BUCKET_NAME` | Cloud Storage bucket for project persistence | `consumer-genai-experiments-cust-service-voice` |
 | `PORT` | Container HTTP port | `8080` |
 
 ---
