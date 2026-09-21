@@ -54,27 +54,35 @@ This solution allows enterprise customer experience and contact center teams to 
 
 ### 1. Zero-Shot Instant Custom Voice Cloning
 - **Google Cloud Chirp 3 Integration:** Clones target speaker acoustics directly from a brief reference recording (**<= 10 seconds**).
-- **Multilingual Custom Voice Synthesis:** Preserves the cloned vocal identity across **8 languages**:
-  - English (US / India)
+- **Multilingual Custom Voice Synthesis:** Preserves the cloned vocal identity across **13 languages**:
+  - English (US / India / UK)
   - Hindi (हिन्दी)
   - Korean (한국어)
   - Spanish (Español)
   - French (Français)
   - German (Deutsch)
   - Japanese (日本語)
+  - Italian (Italiano)
   - Portuguese (Português)
+  - Chinese Mandarin (中文)
+  - Arabic (العربية)
 - **Automated Voice Profile Management:** Edit voice names directly; the system automatically resolves authentic regional personas and gender roles.
 
-### 2. Multi-Speaker Dynamic Dialogue Generation
-- **Gemini 3.8 Flash Integration:** Synthesizes realistic 5–7 turn customer support interactions from scenario prompts (e.g., banking alerts, airline rebooking, telecom outages).
+### 2. Hybrid One-Way Cloned Voice & Standard Cloud Voice Support
+- **Flexible Speaker Configuration:** Independently assign either a **Custom Cloned Voice** (Chirp 3) or a **Standard Cloud Voice** (Journey, Neural2, Studio) to each speaker.
+- **One-Way Cloned Voice Persona:** Easily configure enterprise scenarios where the Customer Care Agent speaks in a proprietary cloned brand voice while the Customer speaks with a natural prebuilt Google Cloud standard voice (e.g., Journey-D Natural Male or Journey-F Warm Female).
+- **Synchronized Badge Indicators:** Synchronized playback cards and subtitle displays visually distinguish between cloned and standard voices with exact timestamps.
+
+### 3. Multi-Speaker Dynamic Dialogue Generation
+- **Gemini 3.8 Flash Integration:** Synthesizes realistic 5–7 turn customer support interactions from scenario prompts (e.g., banking alerts, healthcare scheduling, telecom outages).
 - **Interactive Turn Editor:** Add, remove, or modify speaker turns, dialogue text, and speaker roles before synthesis.
 - **Nationality & Persona Adaptation:** Automatically maps character names to match voice nationalities (e.g., Priya/Rahul for Indian personas, Ji-woo/Min-jun for Korean personas).
 
-### 3. Conversational Mastering & Synchronized Subtitles
+### 4. Conversational Mastering & Synchronized Subtitles
 - **Natural Turn Pacing:** Inserts natural conversational silences (400ms) between agent and customer turns.
 - **Dual-Language Subtitle Timeline:** Displays synchronized cards with start/end timestamps and original vs. spoken translations.
 
-### 4. Permanent Google Cloud Storage Persistence
+### 5. Permanent Google Cloud Storage Persistence
 - **GCS Cloud Persistence:** Manifests (`projects/{project_id}.json`) and audio artifacts (`projects/{project_id}.mp3`) are persisted directly to Google Cloud Storage.
 - **Session Restoration:** Saved projects persist across container launches and redeployments, allowing instant retrieval via the sidebar.
 

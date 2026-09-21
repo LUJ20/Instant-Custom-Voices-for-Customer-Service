@@ -61,6 +61,168 @@ SUPPORTED_CONVERSATION_LANGUAGES = {
     "Arabic (العربية)": {"code": "ar-XA", "trans_code": "ar", "native_name": "العربية"}
 }
 
+# Curated Google Cloud Standard & Prebuilt Voices
+STANDARD_CLOUD_VOICES = {
+    "std_journey_d": {
+        "id": "std_journey_d",
+        "name": "Standard Journey-D (Natural Male)",
+        "voice_type": "standard",
+        "gender": "Male",
+        "native_locale": "en-US",
+        "timbre": "Journey-D",
+        "pitch": 0.0,
+        "speaking_rate": 1.0,
+        "description": "Google Cloud natural, conversational male voice (Standard Cloud Voice)"
+    },
+    "std_journey_f": {
+        "id": "std_journey_f",
+        "name": "Standard Journey-F (Warm Female)",
+        "voice_type": "standard",
+        "gender": "Female",
+        "native_locale": "en-US",
+        "timbre": "Journey-F",
+        "pitch": 0.0,
+        "speaking_rate": 1.0,
+        "description": "Google Cloud warm, expressive female voice (Standard Cloud Voice)"
+    },
+    "std_neural2_f": {
+        "id": "std_neural2_f",
+        "name": "Standard Neural2-F (Clear Female)",
+        "voice_type": "standard",
+        "gender": "Female",
+        "native_locale": "en-US",
+        "timbre": "Neural2-F",
+        "pitch": 0.0,
+        "speaking_rate": 1.0,
+        "description": "Google Cloud Neural2 female studio voice (Standard Cloud Voice)"
+    },
+    "std_neural2_d": {
+        "id": "std_neural2_d",
+        "name": "Standard Neural2-D (Professional Male)",
+        "voice_type": "standard",
+        "gender": "Male",
+        "native_locale": "en-US",
+        "timbre": "Neural2-D",
+        "pitch": 0.0,
+        "speaking_rate": 1.0,
+        "description": "Google Cloud Neural2 male professional voice (Standard Cloud Voice)"
+    },
+    "std_studio_o": {
+        "id": "std_studio_o",
+        "name": "Standard Studio-O (Empathetic Female)",
+        "voice_type": "standard",
+        "gender": "Female",
+        "native_locale": "en-US",
+        "timbre": "Studio-O",
+        "pitch": 0.0,
+        "speaking_rate": 1.0,
+        "description": "Google Cloud high-fidelity Studio female voice (Standard Cloud Voice)"
+    },
+    "std_studio_q": {
+        "id": "std_studio_q",
+        "name": "Standard Studio-Q (Authoritative Male)",
+        "voice_type": "standard",
+        "gender": "Male",
+        "native_locale": "en-US",
+        "timbre": "Studio-Q",
+        "pitch": 0.0,
+        "speaking_rate": 1.0,
+        "description": "Google Cloud high-fidelity Studio male voice (Standard Cloud Voice)"
+    },
+    "std_in_neural2_a": {
+        "id": "std_in_neural2_a",
+        "name": "Standard Indian Neural2-A (Female)",
+        "voice_type": "standard",
+        "gender": "Female",
+        "native_locale": "en-IN",
+        "timbre": "Neural2-A",
+        "pitch": 0.0,
+        "speaking_rate": 1.0,
+        "description": "Google Cloud Indian English Neural2 female voice (Standard Cloud Voice)"
+    },
+    "std_in_neural2_b": {
+        "id": "std_in_neural2_b",
+        "name": "Standard Indian Neural2-B (Male)",
+        "voice_type": "standard",
+        "gender": "Male",
+        "native_locale": "en-IN",
+        "timbre": "Neural2-B",
+        "pitch": 0.0,
+        "speaking_rate": 1.0,
+        "description": "Google Cloud Indian English Neural2 male voice (Standard Cloud Voice)"
+    }
+}
+
+
+def get_standard_voice_model_for_language(voice_info: Dict[str, Any], lang_info: Dict[str, Any]) -> Tuple[str, str]:
+    """Resolves standard Cloud TTS voice model name and locale for the selected conversation language."""
+    gender = voice_info.get("gender", "Female").capitalize()
+    lang_code = lang_info.get("code", "en-US")
+
+    # Language-specific voice model lookup table
+    std_language_map = {
+        "en-US": {
+            "Female": "en-US-Journey-F",
+            "Male": "en-US-Journey-D"
+        },
+        "en-IN": {
+            "Female": "en-IN-Neural2-A",
+            "Male": "en-IN-Neural2-B"
+        },
+        "en-GB": {
+            "Female": "en-GB-Neural2-A",
+            "Male": "en-GB-Neural2-B"
+        },
+        "es-US": {
+            "Female": "es-US-Neural2-A",
+            "Male": "es-US-Neural2-B"
+        },
+        "fr-FR": {
+            "Female": "fr-FR-Neural2-A",
+            "Male": "fr-FR-Neural2-B"
+        },
+        "de-DE": {
+            "Female": "de-DE-Neural2-F",
+            "Male": "de-DE-Neural2-B"
+        },
+        "hi-IN": {
+            "Female": "hi-IN-Neural2-A",
+            "Male": "hi-IN-Neural2-B"
+        },
+        "ja-JP": {
+            "Female": "ja-JP-Neural2-B",
+            "Male": "ja-JP-Neural2-C"
+        },
+        "it-IT": {
+            "Female": "it-IT-Neural2-A",
+            "Male": "it-IT-Neural2-C"
+        },
+        "pt-BR": {
+            "Female": "pt-BR-Neural2-A",
+            "Male": "pt-BR-Neural2-B"
+        },
+        "cmn-CN": {
+            "Female": "cmn-CN-Standard-A",
+            "Male": "cmn-CN-Standard-B"
+        },
+        "ko-KR": {
+            "Female": "ko-KR-Neural2-A",
+            "Male": "ko-KR-Neural2-C"
+        },
+        "ar-XA": {
+            "Female": "ar-XA-Standard-A",
+            "Male": "ar-XA-Standard-B"
+        }
+    }
+
+    if lang_code == "en-US" and voice_info.get("timbre"):
+        timbre = voice_info.get("timbre")
+        return "en-US", f"en-US-{timbre}"
+
+    models_for_lang = std_language_map.get(lang_code, std_language_map["en-US"])
+    voice_name = models_for_lang.get(gender, models_for_lang.get("Female", "en-US-Journey-F"))
+    return lang_code, voice_name
+
 
 def get_custom_voice_model_and_locale(voice_info: Dict[str, Any], lang_info: Dict[str, Any]) -> Tuple[str, str]:
     """Dynamically resolves the custom voice model and language locale for any chosen language."""
@@ -331,31 +493,25 @@ class VoiceService:
         speaker_role: str = "agent",
         conversation_language: str = "English (US)"
     ) -> bytes:
-        """Synthesizes text using Instant Custom Voice cloning, Chirp 3 HD, or standard Cloud TTS."""
+        """Synthesizes text using Instant Custom Voice cloning, Standard Cloud TTS, Chirp 3 HD, or Gemini TTS."""
         import requests
         headers = self._get_auth_headers()
+        is_standard = (voice_info and voice_info.get("voice_type") == "standard") or (voice_model_name and not voice_cloning_key and not (voice_info and voice_info.get("audio_bytes")))
 
-        # 1. If voice cloning key is available or voice_info is provided, use Cloud TTS Instant Custom Voice
-        if not voice_cloning_key and voice_info:
-            voice_cloning_key = voice_info.get("voice_cloning_key")
-
-        if not voice_cloning_key and voice_info:
-            voice_cloning_key, _ = self.create_custom_voice_key(voice_info)
-
-        if voice_cloning_key:
+        # 1. If this is a Standard Cloud Voice, use Google Cloud TTS Standard/Journey/Neural2 directly
+        if is_standard:
             url = "https://texttospeech.googleapis.com/v1beta1/text:synthesize"
-            # Note: Chirp 3 Instant Custom Voice synthesizes translated text in any language
-            # (Korean, Hindi, Spanish, French, German, Japanese, Portuguese, US English, etc.)
-            # with the exact cloned custom voice identity using language_code='en-US'.
             payload = {
                 "input": {"text": text.strip()},
                 "voice": {
-                    "language_code": "en-US",
-                    "voice_clone": {"voice_cloning_key": voice_cloning_key}
+                    "languageCode": language_code,
+                    "name": voice_model_name
                 },
                 "audioConfig": {
                     "audioEncoding": "MP3",
-                    "sample_rate_hertz": 24000
+                    "speakingRate": speaking_rate,
+                    "pitch": pitch,
+                    "sampleRateHertz": 24000
                 }
             }
             try:
@@ -365,11 +521,43 @@ class VoiceService:
                     if "audioContent" in data:
                         return base64.b64decode(data["audioContent"])
                 else:
-                    logger.warning("Voice clone synthesis status %d: %s", resp.status_code, resp.text[:200])
+                    logger.warning("Standard Cloud TTS status %d: %s", resp.status_code, resp.text[:200])
             except Exception as e:
-                logger.warning("Voice clone synthesis exception: %s", e)
+                logger.warning("Standard Cloud TTS exception: %s", e)
 
-        # 2. Next, try high-fidelity Chirp 3 HD synthesis
+        # 2. If voice cloning key is available or voice_info is provided (and not standard), use Cloud TTS Instant Custom Voice
+        if not is_standard:
+            if not voice_cloning_key and voice_info:
+                voice_cloning_key = voice_info.get("voice_cloning_key")
+
+            if not voice_cloning_key and voice_info:
+                voice_cloning_key, _ = self.create_custom_voice_key(voice_info)
+
+            if voice_cloning_key:
+                url = "https://texttospeech.googleapis.com/v1beta1/text:synthesize"
+                payload = {
+                    "input": {"text": text.strip()},
+                    "voice": {
+                        "language_code": "en-US",
+                        "voice_clone": {"voice_cloning_key": voice_cloning_key}
+                    },
+                    "audioConfig": {
+                        "audioEncoding": "MP3",
+                        "sample_rate_hertz": 24000
+                    }
+                }
+                try:
+                    resp = requests.post(url, headers=headers, json=payload, timeout=25)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if "audioContent" in data:
+                            return base64.b64decode(data["audioContent"])
+                    else:
+                        logger.warning("Voice clone synthesis status %d: %s", resp.status_code, resp.text[:200])
+                except Exception as e:
+                    logger.warning("Voice clone synthesis exception: %s", e)
+
+        # 3. Next, try high-fidelity Chirp 3 HD synthesis
         url = "https://texttospeech.googleapis.com/v1beta1/text:synthesize"
         payload = {
             "input": {"text": text.strip()},
@@ -392,7 +580,7 @@ class VoiceService:
         except Exception as e:
             logger.warning("Chirp 3 HD synthesis exception: %s", e)
 
-        # 3. Fallback to Gemini 2.5 Flash Preview TTS
+        # 4. Fallback to Gemini 2.5 Flash Preview TTS
         gemini_audio = self.synthesize_gemini_tts(
             text=text,
             voice_info=voice_info,
@@ -402,7 +590,7 @@ class VoiceService:
         if gemini_audio:
             return gemini_audio
 
-        # 4. Fallback to standard Cloud TTS endpoint
+        # 5. Fallback to standard Cloud TTS endpoint
         if self.session:
             v1_url = "https://texttospeech.googleapis.com/v1/text:synthesize"
             v1_payload = {
@@ -462,7 +650,7 @@ class VoiceService:
         conversation_language: str = "English (US)",
         progress_callback: Optional[Any] = None
     ) -> Tuple[bytes, List[Dict[str, Any]]]:
-        """Synthesizes all dialogue turns in parallel using the chosen custom voices and spoken language."""
+        """Synthesizes all dialogue turns in parallel using chosen voices and spoken language."""
         total_turns = len(dialogue)
         if total_turns == 0:
             return b"", []
@@ -480,22 +668,27 @@ class VoiceService:
         else:
             spoken_texts = original_texts
 
-        # 2. Pre-generate Chirp 3 custom voice cloning keys if not yet generated
-        if agent_voice_info and not agent_voice_info.get("voice_cloning_key"):
+        # 2. Pre-generate Chirp 3 custom voice cloning keys for cloned voices only
+        if agent_voice_info and agent_voice_info.get("voice_type") != "standard" and not agent_voice_info.get("voice_cloning_key"):
             self.create_custom_voice_key(agent_voice_info)
-        if customer_voice_info and not customer_voice_info.get("voice_cloning_key"):
+        if customer_voice_info and customer_voice_info.get("voice_type") != "standard" and not customer_voice_info.get("voice_cloning_key"):
             self.create_custom_voice_key(customer_voice_info)
 
         # 3. Parallel audio synthesis using ThreadPoolExecutor
         def _synth_turn(idx: int, turn_data: Dict[str, Any], spoken_text: str) -> Tuple[int, bytes]:
             spk = turn_data.get("speaker", "agent")
             v_info = agent_voice_info if spk == "agent" else customer_voice_info
+            is_std = (v_info.get("voice_type") == "standard")
             
-            # Resolve custom voice model and locale for chosen conversation language
-            v_locale, v_model = get_custom_voice_model_and_locale(v_info, lang_info)
+            if is_std:
+                v_locale, v_model = get_standard_voice_model_for_language(v_info, lang_info)
+                v_key = None
+            else:
+                v_locale, v_model = get_custom_voice_model_and_locale(v_info, lang_info)
+                v_key = v_info.get("voice_cloning_key", None)
+
             v_rate = float(v_info.get("speaking_rate", 1.0))
             v_pitch = float(v_info.get("pitch", 0.0))
-            v_key = v_info.get("voice_cloning_key", None)
 
             aud_bytes = self.synthesize_line(
                 text=spoken_text,
@@ -530,7 +723,8 @@ class VoiceService:
 
         for i, turn in enumerate(dialogue):
             speaker_type = turn.get("speaker", "agent")
-            default_spk_name = agent_voice_info.get("name", "Agent") if speaker_type == "agent" else customer_voice_info.get("name", "Customer")
+            active_v_info = agent_voice_info if speaker_type == "agent" else customer_voice_info
+            default_spk_name = active_v_info.get("name", "Agent" if speaker_type == "agent" else "Customer")
             speaker_name = turn.get("speaker_name", default_spk_name)
             orig_text = original_texts[i]
             spoken_text = spoken_texts[i]
@@ -551,12 +745,14 @@ class VoiceService:
 
             start_s = current_time_s
             end_s = current_time_s + duration_s
-            active_v_name = agent_voice_info.get("name", "Custom Voice") if speaker_type == "agent" else customer_voice_info.get("name", "Custom Voice")
+            active_v_name = active_v_info.get("name", "Custom Voice")
+            v_type = active_v_info.get("voice_type", "cloned")
 
             timeline.append({
                 "turn_index": i + 1,
                 "speaker": speaker_type,
                 "speaker_name": speaker_name,
+                "voice_type": v_type,
                 "custom_voice_name": active_v_name,
                 "spoken_text": spoken_text,
                 "original_text": orig_text,

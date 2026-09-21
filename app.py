@@ -25,7 +25,14 @@ import streamlit as st
 
 from voice_gallery import VoiceGalleryManager
 from script_generator import ScriptGenerator
-from voice_service import VoiceService, SUPPORTED_CONVERSATION_LANGUAGES, REQUIRED_CONSENT_SCRIPT, get_custom_voice_model_and_locale
+from voice_service import (
+    VoiceService,
+    SUPPORTED_CONVERSATION_LANGUAGES,
+    STANDARD_CLOUD_VOICES,
+    REQUIRED_CONSENT_SCRIPT,
+    get_custom_voice_model_and_locale,
+    get_standard_voice_model_for_language
+)
 from gcs_service import GCSService
 from project_manager import ProjectManager
 from scenarios import SCENARIOS, get_display_name_for_voice, adapt_dialogue_names_and_genders
@@ -149,16 +156,20 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Instantiate Managers
-gallery_mgr = VoiceGalleryManager()
-proj_mgr = ProjectManager()
+# Voice Resolver Helper (Supports both Custom Cloned and Standard Cloud voices)
+def resolve_voice_by_id(vid: str, mgr: VoiceGalleryManager) -> Optional[Dict[str, Any]]:
+    if not vid:
+        return None
+    if vid.startswith("std_") or vid in STANDARD_CLOUD_VOICES:
+        return copy.deepcopy(STANDARD_CLOUD_VOICES.get(vid))
+    return mgr.get_voice_by_id(vid)
 
 active_voices = gallery_mgr.get_all_voices()
-default_agent_vid = active_voices[0]["id"] if active_voices else ""
-default_cust_vid = active_voices[1]["id"] if len(active_voices) > 1 else (active_voices[0]["id"] if active_voices else "")
+default_agent_vid = active_voices[0]["id"] if active_voices else "std_journey_f"
+default_cust_vid = "std_journey_d" if "std_journey_d" in STANDARD_CLOUD_VOICES else (active_voices[1]["id"] if len(active_voices) > 1 else default_agent_vid)
 
-agent_voice_info = gallery_mgr.get_voice_by_id(default_agent_vid)
-cust_voice_info = gallery_mgr.get_voice_by_id(default_cust_vid)
+agent_voice_info = resolve_voice_by_id(default_agent_vid, gallery_mgr)
+cust_voice_info = resolve_voice_by_id(default_cust_vid, gallery_mgr)
 
 # Determine first default scenario (Banking)
 default_scenario_key = list(SCENARIOS.keys())[0]
@@ -196,8 +207,8 @@ if "selected_conversation_language" not in st.session_state:
 def reset_workspace():
     first_key = list(SCENARIOS.keys())[0]
     first_sc = SCENARIOS[first_key]
-    agent_v = gallery_mgr.get_voice_by_id(default_agent_vid)
-    cust_v = gallery_mgr.get_voice_by_id(default_cust_vid)
+    agent_v = resolve_voice_by_id(default_agent_vid, gallery_mgr)
+    cust_v = resolve_voice_by_id(default_cust_vid, gallery_mgr)
     st.session_state.dialogue_turns = adapt_dialogue_names_and_genders(first_sc["dialogue"], agent_v, cust_v)
     st.session_state.scenario_prompt = DEFAULT_CUSTOM_SCENARIO_PROMPT
     st.session_state.expand_dialogue_editor = True
@@ -432,7 +443,7 @@ with st.expander("Add or Record New Custom Voice to Gallery", expanded=False):
                     speaking_rate=1.0
                 )
                 if new_v:
-                    st.session_state.selected_customer_voice_id = new_v["id"]
+                    st.session_state.selected_agent_voice_id = new_v["id"]
                     st.success(f"Added '{up_name}' to Custom Voice Gallery!")
                     st.rerun()
 
@@ -561,33 +572,38 @@ with st.expander("Edit, Add or Remove Dialogue Turns", expanded=st.session_state
 
 
 # ==============================================================================
-# SECTION 3: CUSTOM VOICE ASSIGNMENT & CONVERSATION LANGUAGE
+# SECTION 3: VOICE ASSIGNMENT & CONVERSATION LANGUAGE
 # ==============================================================================
-st.markdown("<div class='section-title'>3. Custom Voice Assignment & Conversation Language</div>", unsafe_allow_html=True)
-st.caption("Select which custom voice speaks for the Customer Care Agent and which custom voice speaks for the Customer. Character names and speaker tags in the dialogue automatically synchronize with the selected voice genders.")
+st.markdown("<div class='section-title'>3. Voice Assignment & Conversation Language</div>", unsafe_allow_html=True)
+st.caption("Select your desired **Custom Cloned Voice** for the Customer Care Agent. The Customer is automatically preset to a natural **Standard Google Cloud Voice** (Journey-D / Neural2). Character names and dialogue automatically synchronize with your voice selection.")
 
-voice_options = {v["id"]: f"{v['name']} ({v.get('gender', 'Female')} Profile - Cloned Voice)" for v in active_voices}
+# Build Custom Cloned Voices options dictionary
+voice_options = {
+    v["id"]: f"🎙️ {v['name']} ({v.get('gender', 'Female')} - Custom Cloned Voice)"
+    for v in active_voices
+}
+# Also allow standard voices in agent dropdown if desired
+for vid, std_v in STANDARD_CLOUD_VOICES.items():
+    voice_options[vid] = f"☁️ {std_v['name']} ({std_v.get('gender', 'Female')} - Standard Cloud Voice)"
+
 voice_ids = list(voice_options.keys())
+
+# Preset Customer Voice to Google Cloud Standard Journey-D
+PRESET_CUSTOMER_VOICE_ID = "std_journey_d"
+st.session_state.selected_customer_voice_id = PRESET_CUSTOMER_VOICE_ID
 
 def on_agent_voice_change():
     new_vid = st.session_state.sel_agent_voice_widget
     st.session_state.selected_agent_voice_id = new_vid
-    ag_v = gallery_mgr.get_voice_by_id(new_vid)
-    cu_v = gallery_mgr.get_voice_by_id(st.session_state.selected_customer_voice_id)
+    ag_v = resolve_voice_by_id(new_vid, gallery_mgr)
+    cu_v = resolve_voice_by_id(PRESET_CUSTOMER_VOICE_ID, gallery_mgr)
     st.session_state.dialogue_turns = adapt_dialogue_names_and_genders(st.session_state.dialogue_turns, ag_v, cu_v)
 
-def on_customer_voice_change():
-    new_vid = st.session_state.sel_cust_voice_widget
-    st.session_state.selected_customer_voice_id = new_vid
-    ag_v = gallery_mgr.get_voice_by_id(st.session_state.selected_agent_voice_id)
-    cu_v = gallery_mgr.get_voice_by_id(new_vid)
-    st.session_state.dialogue_turns = adapt_dialogue_names_and_genders(st.session_state.dialogue_turns, ag_v, cu_v)
-
-col_v1, col_v2, col_v3 = st.columns(3)
+col_v1, col_v2 = st.columns(2)
 with col_v1:
     default_agent_idx = voice_ids.index(st.session_state.selected_agent_voice_id) if st.session_state.selected_agent_voice_id in voice_ids else 0
     selected_agent_id = st.selectbox(
-        "Customer Care Agent Voice",
+        "Customer Care Agent Voice (Custom Cloned Voice)",
         options=voice_ids,
         format_func=lambda vid: voice_options[vid],
         index=default_agent_idx,
@@ -595,24 +611,11 @@ with col_v1:
         on_change=on_agent_voice_change
     )
     st.session_state.selected_agent_voice_id = selected_agent_id
-    cur_ag_v = gallery_mgr.get_voice_by_id(selected_agent_id)
-    st.caption(f"Assigned Character: **Customer Care Specialist ({get_display_name_for_voice(cur_ag_v, 'agent')})**")
+    cur_ag_v = resolve_voice_by_id(selected_agent_id, gallery_mgr)
+    ag_badge = "Custom Cloned Voice" if (cur_ag_v and cur_ag_v.get("voice_type") != "standard") else "Standard Cloud Voice"
+    st.caption(f"Assigned Character: **Customer Care Specialist ({get_display_name_for_voice(cur_ag_v, 'agent')})** • _{ag_badge}_")
 
 with col_v2:
-    default_cust_idx = voice_ids.index(st.session_state.selected_customer_voice_id) if (st.session_state.selected_customer_voice_id in voice_ids and len(voice_ids) > 1) else min(1, len(voice_ids)-1)
-    selected_cust_id = st.selectbox(
-        "Customer Voice",
-        options=voice_ids,
-        format_func=lambda vid: voice_options[vid],
-        index=default_cust_idx,
-        key="sel_cust_voice_widget",
-        on_change=on_customer_voice_change
-    )
-    st.session_state.selected_customer_voice_id = selected_cust_id
-    cur_cu_v = gallery_mgr.get_voice_by_id(selected_cust_id)
-    st.caption(f"Assigned Character: **Customer ({get_display_name_for_voice(cur_cu_v, 'customer')})**")
-
-with col_v3:
     lang_options = list(SUPPORTED_CONVERSATION_LANGUAGES.keys())
     cur_lang_idx = lang_options.index(st.session_state.selected_conversation_language) if st.session_state.selected_conversation_language in lang_options else 0
     selected_conv_lang = st.selectbox(
@@ -621,11 +624,23 @@ with col_v3:
         index=cur_lang_idx
     )
     st.session_state.selected_conversation_language = selected_conv_lang
-    st.caption(f"Cloned voices synthesize speech in **{selected_conv_lang}**")
+    st.caption(f"Spoken dialogue synthesizes in **{selected_conv_lang}**")
+
+# Informative configuration card
+cur_cu_v = resolve_voice_by_id(PRESET_CUSTOMER_VOICE_ID, gallery_mgr)
+st.markdown(f"""
+<div style='background: #f8f9fa; border-left: 4px solid #1a73e8; padding: 9px 14px; border-radius: 4px; margin-top: 6px; margin-bottom: 14px;'>
+    <div style='font-size:0.88rem; color: #3c4043;'>
+        <b>🎙️ Active Role Routing:</b><br/>
+        • <b>Customer Care Agent:</b> {cur_ag_v.get('name', 'Custom Voice') if cur_ag_v else 'Custom Voice'} (<i>{ag_badge}</i>)<br/>
+        • <b>Customer:</b> Preset to <b>Standard Google Cloud Voice</b> (<i>Journey-D / Neural2</i>)
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # Execution Button
-if st.button("Generate Custom Voice Conversation (.mp3)", use_container_width=True, type="primary"):
-    with st.spinner(f"Generating conversation in {selected_conv_lang} with selected custom voices..."):
+if st.button("Generate Voice Conversation (.mp3)", use_container_width=True, type="primary"):
+    with st.spinner(f"Generating conversation in {selected_conv_lang} with selected custom voice..."):
         prog_bar = st.progress(0.1)
         status_text = st.empty()
 
@@ -636,10 +651,10 @@ if st.button("Generate Custom Voice Conversation (.mp3)", use_container_width=Tr
         vs = VoiceService(project_id=project_id)
         gcs = GCSService(project_id=project_id, bucket_name=gcs_bucket)
 
-        agent_voice_info = gallery_mgr.get_voice_by_id(selected_agent_id) or {}
-        customer_voice_info = gallery_mgr.get_voice_by_id(selected_cust_id) or {}
+        agent_voice_info = resolve_voice_by_id(selected_agent_id, gallery_mgr) or {}
+        customer_voice_info = resolve_voice_by_id(PRESET_CUSTOMER_VOICE_ID, gallery_mgr) or {}
         st.session_state.active_agent_voice_name = agent_voice_info.get("name", "Custom Voice")
-        st.session_state.active_customer_voice_name = customer_voice_info.get("name", "Custom Voice")
+        st.session_state.active_customer_voice_name = customer_voice_info.get("name", "Standard Journey-D (Male)")
 
         master_audio_bytes, timeline = vs.generate_full_conversation(
             dialogue=st.session_state.dialogue_turns,
@@ -672,16 +687,21 @@ if st.button("Generate Custom Voice Conversation (.mp3)", use_container_width=Tr
 if st.session_state.generated_audio_mp3:
     st.markdown("<div class='section-title'>4. Master Conversation Playback & Synchronized Subtitles</div>", unsafe_allow_html=True)
     
-    agent_display = st.session_state.get("active_agent_voice_name", "Agent Custom Voice")
-    cust_display = st.session_state.get("active_customer_voice_name", "Customer Custom Voice")
+    agent_voice_info = resolve_voice_by_id(st.session_state.selected_agent_voice_id, gallery_mgr) or {}
+    cust_voice_info = resolve_voice_by_id(st.session_state.selected_customer_voice_id, gallery_mgr) or {}
+    agent_display = st.session_state.get("active_agent_voice_name", agent_voice_info.get("name", "Agent Voice"))
+    cust_display = st.session_state.get("active_customer_voice_name", cust_voice_info.get("name", "Customer Voice"))
     lang_display = st.session_state.get("selected_conversation_language", "English (US)")
+
+    ag_badge = "Custom Cloned Voice" if agent_voice_info.get("voice_type") != "standard" else "Standard Cloud Voice"
+    cu_badge = "Custom Cloned Voice" if cust_voice_info.get("voice_type") != "standard" else "Standard Cloud Voice"
 
     st.markdown(f"""
     <div style='background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px;'>
-        <div style='font-size:0.95rem; font-weight: 600; color: #1a73e8; margin-bottom: 4px;'>🎙️ Active Cloned Custom Voices</div>
+        <div style='font-size:0.95rem; font-weight: 600; color: #1a73e8; margin-bottom: 4px;'>🎙️ Active Voice Configuration</div>
         <div style='font-size:0.88rem; color: #202124;'>
-            <span><b>Agent Voice:</b> {agent_display} (Custom Cloned Voice)</span> &nbsp;|&nbsp;
-            <span><b>Customer Voice:</b> {cust_display} (Custom Cloned Voice)</span> &nbsp;|&nbsp;
+            <span><b>Agent Voice:</b> {agent_display} ({ag_badge})</span> &nbsp;|&nbsp;
+            <span><b>Customer Voice:</b> {cust_display} ({cu_badge})</span> &nbsp;|&nbsp;
             <span style='color: #5f6368;'><b>Language:</b> {lang_display}</span>
         </div>
     </div>
@@ -706,9 +726,10 @@ if st.session_state.generated_audio_mp3:
             card_class = "subtitle-card customer" if t["speaker"] == "customer" else "subtitle-card"
             badge = "Customer Care Specialist" if t["speaker"] == "agent" else "Customer"
             v_label = t.get("custom_voice_name", agent_display if t["speaker"] == "agent" else cust_display)
+            v_type_badge = "Custom Cloned Voice" if t.get("voice_type") != "standard" else "Standard Cloud Voice"
             
             sub_html = f"<div class='{card_class}'>"
-            sub_html += f"<div style='font-size:0.82rem; color:#5f6368; font-weight:600;'>[{t['start_time_s']}s - {t['end_time_s']}s] • {t['speaker_name']} ({badge}) • 🎙️ {v_label} (Custom Cloned Voice)</div>"
+            sub_html += f"<div style='font-size:0.82rem; color:#5f6368; font-weight:600;'>[{t['start_time_s']}s - {t['end_time_s']}s] • {t['speaker_name']} ({badge}) • 🎙️ {v_label} ({v_type_badge})</div>"
             sub_html += f"<div style='font-size:1.0rem; color:#202124; margin-top:3px;'><b>Spoken:</b> {t.get('spoken_text', t.get('text', ''))}</div>"
             if t.get("original_text") and t.get("original_text") != t.get("spoken_text"):
                 sub_html += f"<div style='font-size:0.9rem; color:#5f6368; margin-top:2px;'><b>Original (English):</b> {t['original_text']}</div>"
