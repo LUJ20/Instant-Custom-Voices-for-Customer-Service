@@ -188,7 +188,7 @@ def get_default_reference_audio() -> bytes:
 if "agent_audio_bytes" not in st.session_state:
     st.session_state.agent_audio_bytes = get_default_reference_audio()
 if "agent_voice_name" not in st.session_state:
-    st.session_state.agent_voice_name = "Layolin Jesudhass (Reference Voice)"
+    st.session_state.agent_voice_name = "Customer Care Specialist"
 if "agent_voice_gender" not in st.session_state:
     st.session_state.agent_voice_gender = "Female"
 if "agent_gcs_uri" not in st.session_state:
@@ -236,15 +236,9 @@ with st.sidebar:
     gcs_bucket = st.text_input("GCS Storage Bucket", value=detected_bucket)
 
     st.markdown("---")
-    st.markdown("### Active Session Voice Status")
-    if st.session_state.agent_gcs_uri:
-        st.success(f"🎙️ **Recorded Voice Saved in GCS:**\n`{st.session_state.agent_gcs_uri}`")
-    else:
-        st.info("🎙️ **Active Voice:** Using preloaded reference voice. Record below to clone your own voice!")
-
-    if st.button("Reset to Default Reference Voice", use_container_width=True):
+    if st.button("Reset Session to Default", use_container_width=True):
         st.session_state.agent_audio_bytes = get_default_reference_audio()
-        st.session_state.agent_voice_name = "Layolin Jesudhass (Reference Voice)"
+        st.session_state.agent_voice_name = "Customer Care Specialist"
         st.session_state.agent_voice_gender = "Female"
         st.session_state.agent_gcs_uri = None
         st.session_state.dialogue_turns = copy.deepcopy(DEFAULT_FLIGHT_DIALOGUE)
@@ -281,10 +275,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-col_rec1, col_rec2 = st.columns([1, 1])
-
-with col_rec1:
-    st.markdown("##### 🎙️ Microphone Recording")
+col_rec, _ = st.columns([1, 1])
+with col_rec:
     recorded_audio = st.audio_input("Click record and read the consent statement (5-10s)")
     if recorded_audio:
         rec_bytes = recorded_audio.getvalue()
@@ -312,43 +304,6 @@ with col_rec1:
             st.session_state.generated_timeline = None
             st.success(f"✅ Voice recorded, saved to GCS (`{gcs_uri}`), and activated!")
             st.rerun()
-
-with col_rec2:
-    st.markdown("##### 📁 Or Upload Voice Sample")
-    uploaded_file = st.file_uploader("Upload audio sample (.mp3 or .wav, <= 10s)", type=["mp3", "wav"], key="file_up")
-    if uploaded_file:
-        up_bytes = uploaded_file.getvalue()
-        if st.button("Save & Activate Uploaded Voice", key="btn_save_up"):
-            from voice_service import HAS_PYDUB, AudioSegment
-            mp3_data = up_bytes
-            if HAS_PYDUB:
-                try:
-                    seg = AudioSegment.from_file(io.BytesIO(up_bytes))
-                    buf = io.BytesIO()
-                    seg.export(buf, format="mp3")
-                    mp3_data = buf.getvalue()
-                except Exception:
-                    pass
-
-            blob_name = f"voices/agent_voice_{int(time.time())}_{uuid.uuid4().hex[:6]}.mp3"
-            _, gcs_uri = gcs_service.upload_bytes(mp3_data, blob_name, content_type="audio/mpeg")
-
-            st.session_state.agent_audio_bytes = mp3_data
-            st.session_state.agent_voice_name = uploaded_file.name.rsplit(".", 1)[0]
-            st.session_state.agent_gcs_uri = gcs_uri
-            st.session_state.generated_audio_mp3 = None
-            st.session_state.generated_timeline = None
-            st.success(f"✅ Voice uploaded, saved to GCS (`{gcs_uri}`), and activated!")
-            st.rerun()
-
-# Active Voice Status Banner
-if st.session_state.agent_audio_bytes:
-    col_status1, col_status2 = st.columns([2, 1])
-    with col_status1:
-        gcs_label = f" • Saved in GCS (`{st.session_state.agent_gcs_uri}`)" if st.session_state.agent_gcs_uri else " • Preloaded Reference Sample"
-        st.markdown(f"**Current Active Agent Voice:** `{st.session_state.agent_voice_name}` <span class='custom-badge'>Custom Cloned Voice (Chirp 3)</span>{gcs_label}", unsafe_allow_html=True)
-    with col_status2:
-        st.audio(st.session_state.agent_audio_bytes, format="audio/mp3")
 
 
 # ==============================================================================
@@ -383,21 +338,20 @@ for idx, turn in enumerate(dialogue_turns):
 # STEP 3: CONVERSATION SPOKEN LANGUAGE
 # ==============================================================================
 st.markdown("<div class='step-header'>3. Conversation Spoken Language</div>", unsafe_allow_html=True)
-st.caption("Select the language for the multi-speaker customer service conversation. The Agent will speak in your cloned voice, and the Customer will speak in a natural standard cloud voice in the selected language.")
+st.caption("Select the language for the multi-speaker customer service conversation.")
 
 lang_options = list(SUPPORTED_CONVERSATION_LANGUAGES.keys())
 cur_lang_idx = lang_options.index(st.session_state.selected_conversation_language) if st.session_state.selected_conversation_language in lang_options else 0
 
-selected_language = st.selectbox(
-    "Spoken Conversation Language",
-    options=lang_options,
-    index=cur_lang_idx,
-    key="sel_lang_dropdown"
-)
-st.session_state.selected_conversation_language = selected_language
-
-# Info Callout for Dual-Voice Architecture
-st.info(f"🗣️ **Voice Assignment for {selected_language}:**\n• **Customer Care Agent:** `{st.session_state.agent_voice_name}` (*Custom Cloned Voice via Chirp 3*)\n• **Customer:** `Google Cloud Journey-D / Neural2` (*Standard Prebuilt Voice*)")
+col_lang, _ = st.columns([1, 2])
+with col_lang:
+    selected_language = st.selectbox(
+        "Spoken Conversation Language",
+        options=lang_options,
+        index=cur_lang_idx,
+        key="sel_lang_dropdown"
+    )
+    st.session_state.selected_conversation_language = selected_language
 
 
 # ==============================================================================
