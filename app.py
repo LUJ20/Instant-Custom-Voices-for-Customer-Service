@@ -157,6 +157,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Initialize Core Managers
+gallery_mgr = VoiceGalleryManager()
+proj_mgr = ProjectManager()
+
 # Voice Resolver Helper (Supports both Custom Cloned and Standard Cloud voices)
 def resolve_voice_by_id(vid: str, mgr: VoiceGalleryManager) -> Optional[Dict[str, Any]]:
     if not vid:
