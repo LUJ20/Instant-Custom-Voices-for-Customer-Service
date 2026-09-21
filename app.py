@@ -582,15 +582,11 @@ with st.expander("Edit, Add or Remove Dialogue Turns", expanded=st.session_state
 st.markdown("<div class='section-title'>3. Voice Assignment & Conversation Language</div>", unsafe_allow_html=True)
 st.caption("Select your desired **Custom Cloned Voice** for the Customer Care Agent. The Customer is automatically preset to a natural **Standard Google Cloud Voice** (Journey-D / Neural2). Character names and dialogue automatically synchronize with your voice selection.")
 
-# Build Custom Cloned Voices options dictionary
+# Build Custom Cloned Voices options dictionary (Exclusively Gallery Cloned Voices)
 voice_options = {
-    v["id"]: f"🎙️ {v['name']} ({v.get('gender', 'Female')} - Custom Cloned Voice)"
+    v["id"]: f"🎙️ {v['name']} ({v.get('gender', 'Female')} Profile - Custom Cloned Voice)"
     for v in active_voices
 }
-# Also allow standard voices in agent dropdown if desired
-for vid, std_v in STANDARD_CLOUD_VOICES.items():
-    voice_options[vid] = f"☁️ {std_v['name']} ({std_v.get('gender', 'Female')} - Standard Cloud Voice)"
-
 voice_ids = list(voice_options.keys())
 
 # Preset Customer Voice to Google Cloud Standard Journey-D
@@ -617,7 +613,7 @@ with col_v1:
     )
     st.session_state.selected_agent_voice_id = selected_agent_id
     cur_ag_v = resolve_voice_by_id(selected_agent_id, gallery_mgr)
-    ag_badge = "Custom Cloned Voice" if (cur_ag_v and cur_ag_v.get("voice_type") != "standard") else "Standard Cloud Voice"
+    ag_badge = "Custom Cloned Voice (Chirp 3)"
     st.caption(f"Assigned Character: **Customer Care Specialist ({get_display_name_for_voice(cur_ag_v, 'agent')})** • _{ag_badge}_")
 
 with col_v2:
