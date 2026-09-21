@@ -393,3 +393,6 @@ def adapt_dialogue_names_and_genders(
 
     return adapted
 
+
+DEFAULT_FLIGHT_DIALOGUE = SCENARIOS["Airline Flight Rebooking & Support"]["dialogue"]
+
