@@ -304,8 +304,10 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-col_rec, _ = st.columns([1, 1])
-with col_rec:
+col_rec1, col_rec2 = st.columns([1, 1])
+
+with col_rec1:
+    st.markdown("##### 🎙️ Microphone Recording")
     recorded_audio = st.audio_input("Click record and read the consent statement (5-10s)")
     if recorded_audio:
         rec_bytes = recorded_audio.getvalue()
@@ -332,6 +334,34 @@ with col_rec:
             st.session_state.generated_audio_mp3 = None
             st.session_state.generated_timeline = None
             st.success(f"✅ Voice recorded, saved to GCS (`{gcs_uri}`), and activated!")
+            st.rerun()
+
+with col_rec2:
+    st.markdown("##### 📁 Upload Voice Sample")
+    uploaded_file = st.file_uploader("Upload audio sample (.mp3 or .wav, <= 10s)", type=["mp3", "wav"], key="file_up")
+    if uploaded_file:
+        up_bytes = uploaded_file.getvalue()
+        if st.button("Save & Activate Uploaded Voice", key="btn_save_up", type="primary"):
+            from voice_service import HAS_PYDUB, AudioSegment
+            mp3_data = up_bytes
+            if HAS_PYDUB:
+                try:
+                    seg = AudioSegment.from_file(io.BytesIO(up_bytes))
+                    buf = io.BytesIO()
+                    seg.export(buf, format="mp3")
+                    mp3_data = buf.getvalue()
+                except Exception:
+                    pass
+
+            blob_name = f"voices/agent_voice_{int(time.time())}_{uuid.uuid4().hex[:6]}.mp3"
+            _, gcs_uri = gcs_service.upload_bytes(mp3_data, blob_name, content_type="audio/mpeg")
+
+            st.session_state.agent_audio_bytes = mp3_data
+            st.session_state.agent_voice_name = uploaded_file.name.rsplit(".", 1)[0]
+            st.session_state.agent_gcs_uri = gcs_uri
+            st.session_state.generated_audio_mp3 = None
+            st.session_state.generated_timeline = None
+            st.success(f"✅ Voice uploaded, saved to GCS (`{gcs_uri}`), and activated!")
             st.rerun()
 
 
