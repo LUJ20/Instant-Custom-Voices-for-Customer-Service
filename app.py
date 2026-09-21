@@ -32,6 +32,7 @@ from voice_service import (
     get_standard_voice_model_for_language
 )
 from gcs_service import GCSService
+from project_manager import ProjectManager
 from scenarios import DEFAULT_FLIGHT_DIALOGUE, adapt_dialogue_names_and_genders, get_display_name_for_voice
 
 logging.basicConfig(level=logging.INFO)
@@ -146,6 +147,13 @@ st.markdown("""
         font-weight: 600;
         margin-left: 6px;
     }
+    .project-card {
+        background-color: #ffffff;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 12px;
+    }
     div.stButton > button:first-child {
         background-color: #1a73e8 !important;
         border-color: #1a73e8 !important;
@@ -166,6 +174,7 @@ st.markdown("""
 
 # Initialize Core Services
 gcs_service = GCSService()
+proj_mgr = ProjectManager(gcs_service=gcs_service)
 
 
 # Load Default Reference Audio as initial fallback
@@ -201,6 +210,8 @@ if "generated_audio_mp3" not in st.session_state:
     st.session_state.generated_audio_mp3 = None
 if "generated_timeline" not in st.session_state:
     st.session_state.generated_timeline = None
+if "active_project_name" not in st.session_state:
+    st.session_state.active_project_name = "Flight Support Demo"
 
 
 # Preset Customer Voice (Google Cloud Standard Journey-D)
@@ -236,7 +247,24 @@ with st.sidebar:
     gcs_bucket = st.text_input("GCS Storage Bucket", value=detected_bucket)
 
     st.markdown("---")
-    if st.button("Reset Session to Default", use_container_width=True):
+    st.markdown("### 💾 Project Controls")
+    
+    # Save project from sidebar
+    proj_save_input = st.text_input("Project Save Name", value=st.session_state.active_project_name, key="sb_proj_name")
+    if st.button("💾 Save Current Project", use_container_width=True, key="sb_btn_save"):
+        manifest = proj_mgr.save_project(
+            name=proj_save_input or "Flight Support Demo",
+            dialogue_turns=st.session_state.dialogue_turns,
+            timeline=st.session_state.generated_timeline,
+            conversation_language=st.session_state.selected_conversation_language,
+            audio_bytes=st.session_state.generated_audio_mp3,
+            agent_voice_id=st.session_state.agent_gcs_uri or "default_reference"
+        )
+        st.session_state.active_project_name = proj_save_input
+        st.success(f"✅ Saved project `{proj_save_input}`!")
+        st.rerun()
+
+    if st.button("Reset Session to Default", use_container_width=True, key="sb_btn_reset"):
         st.session_state.agent_audio_bytes = get_default_reference_audio()
         st.session_state.agent_voice_name = "Customer Care Specialist"
         st.session_state.agent_voice_gender = "Female"
@@ -244,6 +272,7 @@ with st.sidebar:
         st.session_state.dialogue_turns = copy.deepcopy(DEFAULT_FLIGHT_DIALOGUE)
         st.session_state.generated_audio_mp3 = None
         st.session_state.generated_timeline = None
+        st.session_state.active_project_name = "Flight Support Demo"
         st.rerun()
 
 
@@ -312,7 +341,7 @@ with col_rec:
 st.markdown("<div class='step-header'>2. Airline Flight Rebooking Conversation (SkyWays Premier Support)</div>", unsafe_allow_html=True)
 st.caption("Pre-configured 7-turn customer service interaction between Customer Care Specialist and Customer David regarding flight rebooking.")
 
-# Display clean conversation turns (Zero remove/delete clutter)
+# Display clean conversation turns
 dialogue_turns = st.session_state.dialogue_turns
 for idx, turn in enumerate(dialogue_turns):
     speaker = turn.get("speaker", "agent")
@@ -332,6 +361,19 @@ for idx, turn in enumerate(dialogue_turns):
             <div class='dialogue-text'>{turn.get('text', '')}</div>
         </div>
         """, unsafe_allow_html=True)
+
+# Optional Dialogue Script Editor
+with st.expander("✏️ Edit Dialogue Script Lines (Optional)", expanded=False):
+    st.caption("Modify any conversation turn text below as needed:")
+    for i, turn in enumerate(st.session_state.dialogue_turns):
+        spk_title = turn.get("speaker_name", turn.get("speaker", "Agent"))
+        new_text = st.text_area(
+            f"Turn {i+1} - {spk_title}",
+            value=turn.get("text", ""),
+            key=f"turn_text_edit_{i}",
+            height=68
+        )
+        st.session_state.dialogue_turns[i]["text"] = new_text
 
 
 # ==============================================================================
@@ -417,3 +459,70 @@ if st.session_state.generated_audio_mp3:
             badge = "<span class='custom-badge'>Custom Cloned Voice</span>" if speaker == "agent" else "<span class='standard-badge'>Standard Cloud Voice</span>"
             time_tag = f"`[{item.get('start_sec', 0.0):.1f}s - {item.get('end_sec', 0.0):.1f}s]`"
             st.markdown(f"• {time_tag} **{sp_name}** {badge}: {item.get('text', '')}", unsafe_allow_html=True)
+
+
+# ==============================================================================
+# STEP 5: SAVE & MANAGE PROJECTS (SAVE, LOAD/EDIT, DELETE)
+# ==============================================================================
+st.markdown("<div class='step-header'>5. Saved Projects & Demos (Save, Edit, Delete)</div>", unsafe_allow_html=True)
+st.caption("Save your customized flight dialogue, language, voice, and generated audio to Google Cloud Storage. Load or edit past projects anytime.")
+
+col_save1, col_save2 = st.columns([2, 1])
+with col_save1:
+    save_name_input = st.text_input(
+        "Project Name to Save",
+        value=st.session_state.active_project_name,
+        key="main_proj_name"
+    )
+with col_save2:
+    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+    if st.button("💾 Save Project to Cloud", key="btn_save_main_proj", use_container_width=True):
+        manifest = proj_mgr.save_project(
+            name=save_name_input or "Flight Support Demo",
+            dialogue_turns=st.session_state.dialogue_turns,
+            timeline=st.session_state.generated_timeline,
+            conversation_language=st.session_state.selected_conversation_language,
+            audio_bytes=st.session_state.generated_audio_mp3,
+            agent_voice_id=st.session_state.agent_gcs_uri or "default_reference"
+        )
+        st.session_state.active_project_name = save_name_input
+        st.success(f"✅ Project `{save_name_input}` successfully saved to Google Cloud Storage!")
+        st.rerun()
+
+# Saved Projects Explorer
+saved_projects = proj_mgr.list_projects()
+if saved_projects:
+    st.markdown("##### 📂 Saved Projects Explorer")
+    for proj in saved_projects:
+        p_id = proj.get("project_id", "")
+        p_name = proj.get("name", "Untitled Project")
+        p_date = proj.get("formatted_date", "")
+        p_lang = proj.get("conversation_language", proj.get("target_translation_lang", "English (US)"))
+        p_turns = len(proj.get("dialogue_turns") or proj.get("dialogue") or [])
+        has_audio = "Yes" if proj.get("gcs_audio_uri") or proj_mgr.get_project_audio(p_id) else "No"
+
+        with st.container():
+            col_p1, col_p2, col_p3 = st.columns([3, 1, 1])
+            with col_p1:
+                st.markdown(f"**📁 {p_name}** • `{p_lang}` • {p_turns} turns • Audio Generated: `{has_audio}`\n<small style='color:#5f6368;'>Saved on: {p_date} • ID: `{p_id}`</small>", unsafe_allow_html=True)
+            with col_p2:
+                if st.button("📥 Load & Edit", key=f"btn_load_{p_id}", use_container_width=True):
+                    loaded_proj = proj_mgr.load_project(p_id)
+                    if loaded_proj:
+                        loaded_turns = loaded_proj.get("dialogue_turns") or loaded_proj.get("dialogue")
+                        if loaded_turns:
+                            st.session_state.dialogue_turns = loaded_turns
+                        st.session_state.selected_conversation_language = loaded_proj.get("conversation_language") or loaded_proj.get("target_translation_lang", "English (US)")
+                        st.session_state.generated_timeline = loaded_proj.get("timeline")
+                        st.session_state.generated_audio_mp3 = loaded_proj.get("audio_bytes")
+                        st.session_state.active_project_name = p_name
+                        st.success(f"✅ Project `{p_name}` loaded into active session!")
+                        st.rerun()
+            with col_p3:
+                if st.button("🗑️ Delete", key=f"btn_del_{p_id}", use_container_width=True):
+                    proj_mgr.delete_project(p_id)
+                    st.success(f"🗑️ Project `{p_name}` deleted!")
+                    st.rerun()
+            st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #e8eaed;'/>", unsafe_allow_html=True)
+else:
+    st.info("No saved projects found in Google Cloud Storage yet. Save your current flight conversation above to start your collection!")
